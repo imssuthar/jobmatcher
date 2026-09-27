@@ -1,0 +1,30 @@
+Priya Nair
+priya.nair@example.org | Bengaluru, India
+linkedin.com/in/priyanair-data
+
+PROFILE
+Data engineer with 5 years of experience designing batch and streaming data platforms.
+
+WORK HISTORY
+
+Lumen Analytics - Senior Data Engineer
+Jan 2022 - Present
+- Built a streaming ingestion platform with Apache Flink and Kafka handling 2 TB of data per day.
+- Designed a lakehouse on Apache Iceberg and Spark that lowered storage cost by 35%.
+- Orchestrated 150 daily pipelines with Airflow and added data quality checks with Great Expectations.
+
+Cobalt Retail - Data Engineer
+Jul 2019 - Dec 2021
+- Migrated nightly ETL jobs from on-premise Hadoop to Snowflake, cutting runtime from 6 hours to 40 minutes.
+- Created dbt models powering dashboards for 400 store managers.
+- Wrote Python services exposing sales forecasts through a FastAPI REST API.
+
+EDUCATION
+M.Tech Data Science, Indian Institute of Science, 2019
+B.E. Information Technology, Anna University, 2017
+
+CERTIFICATIONS
+Databricks Certified Data Engineer Professional (2023)
+
+TECHNICAL SKILLS
+Python, SQL, Apache Spark, Apache Flink, Kafka, Airflow, dbt, Snowflake, Apache Iceberg, FastAPI

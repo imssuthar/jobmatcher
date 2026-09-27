@@ -1,0 +1,53 @@
+{
+  "_comment": "Expected extraction results for the fictional fixture resumes. Tests assert with thresholds (recall), not exact matches, because LLM output varies.",
+  "fixtures": [
+    {
+      "id": "alex_rivera",
+      "source": "alex_rivera.txt",
+      "upload": "alex_rivera.pdf",
+      "name": "Alex Rivera",
+      "email": "alex.rivera@example.com",
+      "skills": ["Go", "Kafka", "Kubernetes", "AWS", "PostgreSQL", "Redis", "gRPC", "OpenTelemetry", "Docker", "Terraform"],
+      "companies": ["Streamline Payments", "Northwind Logistics"],
+      "facts_min": 7,
+      "facts_max": 40,
+      "search": [
+        {"query": "event-driven stream processing of payments", "expect": "Kafka"},
+        {"query": "throttling requests to partner APIs", "expect": "rate limiter"},
+        {"query": "distributed tracing and observability", "expect": "OpenTelemetry"}
+      ]
+    },
+    {
+      "id": "priya_nair",
+      "source": "priya_nair.txt",
+      "upload": "priya_nair.docx",
+      "name": "Priya Nair",
+      "email": "priya.nair@example.org",
+      "skills": ["Python", "SQL", "Spark", "Flink", "Kafka", "Airflow", "dbt", "Snowflake", "Iceberg", "FastAPI"],
+      "companies": ["Lumen Analytics", "Cobalt Retail"],
+      "facts_min": 6,
+      "facts_max": 40,
+      "search": [
+        {"query": "real-time streaming ingestion", "expect": "Flink"},
+        {"query": "moving legacy ETL to a cloud data warehouse", "expect": "Snowflake"},
+        {"query": "workflow orchestration of data pipelines", "expect": "Airflow"}
+      ]
+    },
+    {
+      "id": "marcus_chen",
+      "source": "marcus_chen.txt",
+      "upload": "marcus_chen.txt",
+      "name": "Marcus Chen",
+      "email": "marcus.chen@example.net",
+      "skills": ["Java", "Spring Boot", "Spring Cloud", "Hibernate", "Oracle", "Hazelcast", "IBM MQ", "Keycloak", "Jenkins", "Docker"],
+      "companies": ["Maple Mutual Insurance", "Harbor Bank"],
+      "facts_min": 6,
+      "facts_max": 40,
+      "search": [
+        {"query": "improving API response time with caching", "expect": "Hazelcast"},
+        {"query": "user login and authentication", "expect": "Keycloak"},
+        {"query": "continuous delivery automation", "expect": "Jenkins"}
+      ]
+    }
+  ]
+}

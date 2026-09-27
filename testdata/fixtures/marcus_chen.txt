@@ -1,0 +1,23 @@
+MARCUS CHEN
+Toronto, ON · marcus.chen@example.net · +1 647 555 0199
+
+Java engineer (8 years) specializing in Spring Boot microservices for banking and insurance.
+
+PROFESSIONAL EXPERIENCE
+
+Maple Mutual Insurance — Lead Java Engineer (2020 – present)
+• Architected a claims processing platform with Spring Boot and Spring Cloud, handling 1.2 million claims per year.
+• Reduced p99 API latency from 800 ms to 120 ms by introducing Hazelcast caching and query tuning on Oracle.
+• Mentored a team of 6 engineers and established code review standards.
+• Built CI/CD pipelines with Jenkins and Docker, increasing deployments from monthly to daily.
+
+Harbor Bank — Software Developer (2016 – 2020)
+• Developed REST APIs for online banking in Java 11 and Spring Boot used by 800,000 customers.
+• Integrated with core banking systems over IBM MQ with guaranteed message delivery.
+• Implemented OAuth2 and Keycloak based authentication for customer-facing apps.
+
+EDUCATION
+Bachelor of Applied Science, Computer Engineering — University of Waterloo, 2016
+
+SKILLS
+Java, Spring Boot, Spring Cloud, Hibernate, Oracle, Hazelcast, IBM MQ, Keycloak, Jenkins, Docker, Microservices

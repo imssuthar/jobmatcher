@@ -1,0 +1,6 @@
+.git
+.run
+.env
+private
+docs
+**/.DS_Store

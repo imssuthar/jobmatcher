@@ -1,0 +1,31 @@
+# LiteLLM gateway config. scripts/up.sh renders this into .run/litellm.yaml,
+# replacing __MODEL_*__ with the model names from .env.
+#
+# Services call aliases (smart / fast / embed), never concrete models, so a
+# model swap is a config change with no code change.
+model_list:
+  - model_name: smart
+    litellm_params:
+      model: ollama_chat/__MODEL_SMART__
+      api_base: os.environ/OLLAMA_BASE_URL
+      num_ctx: 8192
+      keep_alive: 30m
+
+  - model_name: fast
+    litellm_params:
+      model: ollama_chat/__MODEL_FAST__
+      api_base: os.environ/OLLAMA_BASE_URL
+      num_ctx: 8192
+      keep_alive: 30m
+
+  - model_name: embed
+    litellm_params:
+      model: ollama/__MODEL_EMBED__
+      api_base: os.environ/OLLAMA_BASE_URL
+
+litellm_settings:
+  request_timeout: 600
+  num_retries: 1
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY

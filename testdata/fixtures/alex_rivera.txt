@@ -1,0 +1,28 @@
+Alex Rivera
+alex.rivera@example.com | +1 415 555 0142 | San Francisco, CA
+github.com/alexrivera-dev
+
+SUMMARY
+Backend engineer with 7 years of experience building high-throughput distributed systems in Go.
+Focused on event-driven architecture, reliability and developer tooling.
+
+EXPERIENCE
+
+Streamline Payments - Senior Backend Engineer
+2021-04 to present | San Francisco, CA
+- Designed an event-driven settlement pipeline on Kafka processing 50,000 transactions per minute.
+- Built an idempotent payment retry service in Go that reduced duplicate charges by 99%.
+- Led the migration of 30 microservices from a monolith to Kubernetes on AWS EKS.
+- Introduced OpenTelemetry tracing across 12 services and cut incident triage time from 45 to 10 minutes.
+
+Northwind Logistics - Software Engineer
+2018-06 to 2021-03 | Oakland, CA
+- Developed a shipment tracking API in Go and PostgreSQL serving 3 million requests per day.
+- Implemented a Redis-based rate limiter protecting partner APIs.
+- Wrote gRPC services for route optimization used by 200 warehouses.
+
+EDUCATION
+B.S. Computer Science, University of California, Davis, 2018
+
+SKILLS
+Go, Kafka, Kubernetes, AWS, PostgreSQL, Redis, gRPC, OpenTelemetry, Docker, Terraform

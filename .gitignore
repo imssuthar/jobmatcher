@@ -1,0 +1,15 @@
+# Local config and rendered files
+.env
+.run/
+
+# Your real resume and other personal files never leave your machine
+private/*
+!private/README.md
+
+# Build and OS artifacts
+bin/
+*.test
+*.out
+.DS_Store
+.idea/
+.vscode/

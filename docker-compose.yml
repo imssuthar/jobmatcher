@@ -1,0 +1,144 @@
+# JobMatcher local stack. Start it with `make up`, which also prepares Ollama,
+# pulls models and renders the LiteLLM config before calling compose.
+name: jobmatcher
+
+x-ollama-host: &ollama-host
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_USER: jobmatcher
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-jobmatcher}
+      POSTGRES_DB: jobmatcher
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jobmatcher -d jobmatcher"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  # S3-compatible object storage for original resume files.
+  s3:
+    image: chrislusf/seaweedfs:latest
+    command: ["server", "-ip.bind=0.0.0.0", "-dir=/data", "-volume.max=10",
+              "-s3", "-s3.port=8333", "-s3.config=/etc/seaweedfs/s3.json"]
+    volumes:
+      - s3data:/data
+      - ./.run/s3.json:/etc/seaweedfs/s3.json:ro
+    ports:
+      - "127.0.0.1:${S3_UI_PORT:-8888}:8888"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8333/healthz"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+
+  tika:
+    image: apache/tika:3.2.3.0
+
+  litellm:
+    image: ghcr.io/berriai/litellm:main-stable
+    <<: *ollama-host
+    command: ["--config", "/app/config.yaml", "--port", "4000"]
+    environment:
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:-sk-jobmatcher-local}
+    volumes:
+      - ./.run/litellm.yaml:/app/config.yaml:ro
+    ports:
+      - "127.0.0.1:${LITELLM_PORT:-4000}:4000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:4000/health/liveliness')"]
+      interval: 5s
+      timeout: 5s
+      retries: 40
+
+  phoenix:
+    image: arizephoenix/phoenix:latest
+    environment:
+      PHOENIX_WORKING_DIR: /data
+    volumes:
+      - phoenixdata:/data
+    ports:
+      - "127.0.0.1:${PHOENIX_PORT:-6006}:6006"
+
+  core:
+    build:
+      context: .
+      dockerfile: services/core/Dockerfile
+    image: jobmatcher/core:dev
+    environment:
+      DATABASE_URL: postgres://jobmatcher:${POSTGRES_PASSWORD:-jobmatcher}@postgres:5432/jobmatcher?sslmode=disable
+      S3_ENDPOINT: s3:8333
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-jobmatcher}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-jobmatcher-secret}
+      TIKA_URL: http://tika:9998
+      LLM_BASE_URL: http://litellm:4000
+      LLM_API_KEY: ${LITELLM_MASTER_KEY:-sk-jobmatcher-local}
+      MODEL_PROFILE: ${MODEL_PROFILE:-smart}
+      MODEL_FACTS: ${MODEL_FACTS:-smart}
+      PIPELINE_WORKERS: ${PIPELINE_WORKERS:-1}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-10}
+      OTLP_ENDPOINT: http://phoenix:6006/v1/traces
+    ports:
+      - "127.0.0.1:${CORE_PORT:-8080}:8080"
+    depends_on:
+      postgres: { condition: service_healthy }
+      s3: { condition: service_healthy }
+      litellm: { condition: service_healthy }
+      tika: { condition: service_started }
+      phoenix: { condition: service_started }
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/readyz"]
+      interval: 3s
+      timeout: 5s
+      retries: 60
+    restart: unless-stopped
+
+  # Linux only: macOS uses native Ollama for Metal GPU acceleration.
+  ollama:
+    image: ollama/ollama:latest
+    profiles: ["ollama"]
+    volumes:
+      - ollama:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  # Go toolchain for unit tests, acceptance tests, evals and the CLI.
+  tester:
+    build:
+      context: .
+      dockerfile: services/core/Dockerfile
+      target: dev
+    image: jobmatcher/tester:dev
+    profiles: ["tools"]
+    working_dir: /work/services/core
+    environment:
+      CORE_URL: http://core:8080
+      LITELLM_URL: http://litellm:4000
+      LITELLM_KEY: ${LITELLM_MASTER_KEY:-sk-jobmatcher-local}
+      PHOENIX_URL: http://phoenix:6006
+      TIKA_URL: http://tika:9998
+      FIXTURES_DIR: /work/testdata/fixtures
+      REPORT_DIR: /work/docs/experiments
+    volumes:
+      - .:/work
+      - gomod:/go/pkg/mod
+      - gobuild:/root/.cache/go-build
+
+volumes:
+  pgdata:
+  s3data:
+  phoenixdata:
+  ollama:
+  gomod:
+  gobuild:

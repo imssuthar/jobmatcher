@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JobMatcher</title>
+<style>
+  :root { --bg:#fafaf9; --card:#fff; --text:#1c1917; --muted:#78716c; --line:#e7e5e4; --accent:#4f46e5; --ok:#15803d; --bad:#b91c1c; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0c0a09; --card:#1c1917; --text:#f5f5f4; --muted:#a8a29e; --line:#292524; --accent:#818cf8; --ok:#4ade80; --bad:#f87171; } }
+  * { box-sizing: border-box; }
+  body { margin:0; font:15px/1.5 system-ui, sans-serif; background:var(--bg); color:var(--text); }
+  main { max-width:960px; margin:0 auto; padding:24px 16px 64px; }
+  h1 { font-size:22px; margin:0 0 4px; } h2 { font-size:17px; margin:0 0 12px; }
+  .muted { color:var(--muted); } .ok { color:var(--ok); } .bad { color:var(--bad); }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin-top:16px; }
+  button { background:var(--accent); color:#fff; border:0; border-radius:8px; padding:8px 14px; cursor:pointer; font:inherit; }
+  button.ghost { background:transparent; color:var(--accent); padding:2px 6px; }
+  input[type=text] { width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--text); font:inherit; }
+  .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .chips span { display:inline-block; padding:2px 8px; margin:2px; border-radius:999px; border:1px solid var(--line); font-size:13px; }
+  .fact { border-top:1px solid var(--line); padding:8px 0; }
+  .fact small { color:var(--muted); }
+  .stages span { padding:2px 8px; border-radius:6px; font-size:13px; border:1px solid var(--line); }
+  .stages span.done { border-color:var(--ok); color:var(--ok); }
+  .stages span.now { border-color:var(--accent); color:var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>JobMatcher</h1>
+  <div class="muted">Phase 1: resume to structured profile and fact bank, using local models only.</div>
+
+  <div class="card">
+    <h2>Upload resume</h2>
+    <div class="row">
+      <input id="file" type="file" accept=".pdf,.docx,.txt,.md">
+      <button id="upload">Upload</button>
+    </div>
+    <div id="status" class="stages" style="margin-top:12px"></div>
+  </div>
+
+  <div class="card" id="profileCard" hidden>
+    <h2>Profile <span id="profileMeta" class="muted"></span></h2>
+    <div id="profile"></div>
+  </div>
+
+  <div class="card" id="searchCard" hidden>
+    <h2>Search facts</h2>
+    <div class="row"><input id="q" type="text" placeholder="e.g. event-driven microservices"><button id="searchBtn">Search</button></div>
+    <div id="results"></div>
+  </div>
+
+  <div class="card" id="factsCard" hidden>
+    <h2>Fact bank <span id="factCount" class="muted"></span></h2>
+    <div id="facts"></div>
+  </div>
+</main>
+<script>
+const STAGES = ["queued","parsing","extracting_profile","extracting_facts","embedding","ready"];
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+async function api(path, opts) {
+  const r = await fetch(path, opts);
+  if (r.status === 204) return null;
+  const body = await r.json();
+  if (!r.ok) throw new Error(body.error || r.statusText);
+  return body;
+}
+
+function renderStatus(res) {
+  if (res.status === "failed") {
+    $("status").innerHTML = `<span class="bad">Failed at ${esc(res.failed_stage)}: ${esc(res.error)}</span>`;
+    return;
+  }
+  const idx = STAGES.indexOf(res.status);
+  $("status").innerHTML = STAGES.map((s, i) =>
+    `<span class="${i < idx || res.status === "ready" ? "done" : i === idx ? "now" : ""}">${s.replace("_", " ")}</span>`).join(" ");
+}
+
+$("upload").onclick = async () => {
+  const f = $("file").files[0];
+  if (!f) { $("status").innerHTML = `<span class="bad">Choose a file first.</span>`; return; }
+  const fd = new FormData(); fd.append("file", f);
+  try {
+    let res = await api("/v1/resumes", { method: "POST", body: fd });
+    renderStatus(res);
+    while (res.status !== "ready" && res.status !== "failed") {
+      await new Promise(r => setTimeout(r, 1500));
+      res = await api(`/v1/resumes/${res.id}`);
+      renderStatus(res);
+    }
+    if (res.status === "ready") load();
+  } catch (e) { $("status").innerHTML = `<span class="bad">${esc(e.message)}</span>`; }
+};
+
+async function load() {
+  let p;
+  try { p = await api("/v1/profile"); } catch { return; }
+  const d = p.data;
+  $("profileCard").hidden = $("factsCard").hidden = $("searchCard").hidden = false;
+  $("profileMeta").textContent = `v${p.version} · ${p.model}`;
+  $("profile").innerHTML = `
+    <div><b>${esc(d.name)}</b> · ${esc(d.headline)}</div>
+    <div class="muted">${esc(d.email)} ${esc(d.phone)} ${esc(d.location)} · ${d.total_years_experience} yrs</div>
+    <p>${esc(d.summary)}</p>
+    <div class="chips">${d.skills.map(s => `<span>${esc(s)}</span>`).join("")}</div>
+    ${d.experience.map(e => `<div class="fact"><b>${esc(e.title)}</b>, ${esc(e.company)} <small>${esc(e.start)} – ${esc(e.end)}</small></div>`).join("")}`;
+  const facts = await api("/v1/profile/facts");
+  $("factCount").textContent = `(${facts.count})`;
+  $("facts").innerHTML = facts.facts.map(f => `
+    <div class="fact" data-id="${f.id}">
+      <div class="text">${esc(f.text)}</div>
+      <small>${esc(f.category)}${f.company ? " · " + esc(f.company) : ""}${f.metric ? " · " + esc(f.metric) : ""}${f.edited ? " · edited" : ""}</small>
+      <button class="ghost" data-act="edit">edit</button><button class="ghost" data-act="del">delete</button>
+    </div>`).join("");
+}
+
+$("facts").onclick = async (ev) => {
+  const act = ev.target.dataset.act; if (!act) return;
+  const row = ev.target.closest(".fact"); const id = row.dataset.id;
+  if (act === "del") { await api(`/v1/profile/facts/${id}`, { method: "DELETE" }); return load(); }
+  const text = prompt("Edit fact", row.querySelector(".text").textContent);
+  if (text) {
+    try { await api(`/v1/profile/facts/${id}`, { method: "PATCH", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ text }) }); load(); }
+    catch (e) { alert(e.message); }
+  }
+};
+
+$("searchBtn").onclick = async () => {
+  const q = $("q").value.trim(); if (!q) return;
+  const r = await api(`/v1/profile/facts/search?q=${encodeURIComponent(q)}&k=5`);
+  $("results").innerHTML = r.results.map(h => `<div class="fact">${esc(h.text)} <small>score ${h.score.toFixed(3)}</small></div>`).join("");
+};
+
+load();
+</script>
+</body>
+</html>
