@@ -30,12 +30,15 @@ Run `make` to list every target.
 
 ## Architecture (Phase 1)
 
-```
- Browser / jmctl ──► core (Go) ──► Tika            (PDF/DOCX → text)
-                        │    ──► SeaweedFS (S3)    (original files)
-                        │    ──► Postgres+pgvector (profiles, facts, embeddings)
-                        │    ──► LiteLLM gateway ──► Ollama (qwen2.5 7B/3B, nomic-embed-text)
-                        └──────► Phoenix           (OpenTelemetry traces)
+```mermaid
+flowchart LR
+    ui["Web UI / jmctl"] -->|REST| core["core service (Go)<br/>API + pipeline workers"]
+    core --> tika["Tika<br/>PDF/DOCX → text"]
+    core --> s3["SeaweedFS (S3)<br/>original files"]
+    core --> pg[("Postgres + pgvector<br/>profiles · facts")]
+    core --> litellm["LiteLLM gateway"]
+    litellm --> ollama["Ollama (native, Metal)<br/>qwen2.5 7B/3B · nomic-embed"]
+    core -.->|traces| phoenix["Phoenix"]
 ```
 
 Resume pipeline (asynchronous, resumable after a crash):
@@ -46,6 +49,8 @@ upload ─► dedup (sha256) ─► store in S3 ─► parse (Tika)
        ─► extract facts   (LLM, JSON schema, validate, retry with feedback)
        ─► embed facts (nomic-embed-text, 768d) ─► activate profile version (one transaction)
 ```
+
+Full diagrams (sequence, states, data model, quality gates): **[docs/architecture.md](docs/architecture.md)**.
 
 Services only call **model aliases** (`smart`, `fast`, `embed`) on the gateway, so swapping
 models is a change to `.env`, not to code.
